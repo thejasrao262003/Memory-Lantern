@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ person_name }}'s Storybook</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #FDF6EC;
+      color: #3B342C;
+      font-family: 'Lora', Georgia, 'Times New Roman', serif;
+    }
+
+    .scene {
+      page-break-after: always;
+      background: #FDF6EC;
+      padding: 48px 56px 64px 56px;
+      box-sizing: border-box;
+      min-height: 100vh;
+    }
+
+    .scene__image {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      display: block;
+      margin-bottom: 32px;
+    }
+
+    .scene__text {
+      font-size: 22px;
+      line-height: 1.7;
+      letter-spacing: 0.2px;
+    }
+
+    /* Final page: photo fills the page, single italic line centred at bottom. */
+    .final-page {
+      page-break-before: always;
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .final-page__image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .final-page__caption {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 56px;
+      text-align: center;
+      font-style: italic;
+      font-size: 24px;
+      color: #FFFFFF;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+      padding: 0 48px;
+    }
+  </style>
+</head>
+<body>
+  {% for scene in scenes %}
+  <section class="scene">
+    {% if scene.image_data_uri %}
+    <img class="scene__image" src="{{ scene.image_data_uri }}" alt="Scene {{ scene.scene_number }}" />
+    {% endif %}
+    <div class="scene__text">{{ scene.text }}</div>
+  </section>
+  {% endfor %}
+
+  <section class="final-page">
+    {% if final_image_data_uri %}
+    <img class="final-page__image" src="{{ final_image_data_uri }}" alt="" />
+    {% else %}
+    <img class="final-page__image" src="FINAL_IMAGE_PLACEHOLDER" alt="" />
+    {% endif %}
+    <div class="final-page__caption">{{ final_line }}</div>
+  </section>
+</body>
+</html>

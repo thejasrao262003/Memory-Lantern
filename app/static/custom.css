@@ -1,0 +1,29 @@
+/* Memory Lantern — warm, gentle visual design.
+   Loaded via gr.Blocks(css=...). See docs/USER_INTERFACE.md. */
+
+/* Warm cream background for the whole app */
+.gradio-container {
+    background-color: #FDFAF5 !important;
+}
+
+/* Soften the default Gradio tab border with a warm accent */
+.tab-nav {
+    border-bottom: 2px solid #C4956A !important;
+}
+
+/* Warm accent on the primary button */
+.primary-button,
+button.primary {
+    background-color: #A0522D !important;
+    border-color: #A0522D !important;
+}
+
+/* Gallery images — soft rounded corners */
+.gallery img {
+    border-radius: 8px;
+}
+
+/* Comfortable, readable body text for an older audience */
+.prose, .gr-markdown {
+    line-height: 1.7;
+}

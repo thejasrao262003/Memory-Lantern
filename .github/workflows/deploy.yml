@@ -1,0 +1,33 @@
+name: Deploy to Hugging Face Spaces
+
+# Pushes the application code to the Hugging Face Space on every push to main.
+#
+# NOTE: This workflow deploys ONLY the Gradio app to HF Spaces. The Modal GPU
+# backends are deployed MANUALLY with `modal deploy ...` (see docs/modal_deployment.md)
+# and are intentionally NOT touched here — model deploys are expensive and should be
+# a deliberate, human-triggered action.
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          # Set this repository variable to your Space, e.g. "your-username/memory-lantern"
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          git config --global user.email "ci@memory-lantern.app"
+          git config --global user.name "Memory Lantern CI"
+          git push --force "https://USERNAME:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" main
