@@ -158,10 +158,21 @@ async def generate_storybook(
         audio_path = narrator.narrate_story(scenes, person_name=person_name)
 
         _progress(1.00, "Your storybook is ready.")
+        # The final page shows the first uploaded photo; load it on the CPU here.
+        first_photo = None
+        if photos:
+            from app.utils.image_utils import load_image
+
+            try:
+                first_photo = load_image(photos[0])
+            except Exception:  # noqa: BLE001 - builder falls back to first illustration
+                first_photo = None
         pdf_path = pdf_builder.build_pdf(
             scenes=scenes,
             images=images,
             person_name=person_name,
+            event=event,
+            first_photo=first_photo,
             output_path=Path("output") / f"{person_name}_storybook.pdf",
         )
     except ValidationError as exc:

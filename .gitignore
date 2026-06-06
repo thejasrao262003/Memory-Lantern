@@ -33,6 +33,9 @@ output/
 generated_images/
 !tests/fixtures/**
 
+# Local rendered storybook previews (regenerable sample output)
+preview/
+
 # Testing / tooling
 .pytest_cache/
 .ruff_cache/

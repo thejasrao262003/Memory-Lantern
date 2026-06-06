@@ -4,93 +4,270 @@
   <meta charset="utf-8" />
   <title>{{ person_name }}'s Storybook</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+
+    :root {
+      --parchment:      #FBF4E4;
+      --parchment-deep: #F3E6C9;
+      --ink:            #3B2A1A;
+      --ink-soft:       #5E4632;
+      --gold:           #B98E4C;
+      --gold-deep:      #9A6B2F;
+      --rule:           #CBB081;
+    }
 
     @page {
-      size: A4;
+      size: A5;          /* 148mm x 210mm */
       margin: 0;
     }
 
     html, body {
       margin: 0;
       padding: 0;
-      background: #FDF6EC;
-      color: #3B342C;
-      font-family: 'Lora', Georgia, 'Times New Roman', serif;
+      color: var(--ink);
+      font-family: 'EB Garamond', Georgia, serif;
+      background: var(--parchment);
     }
 
-    .scene {
-      page-break-after: always;
-      background: #FDF6EC;
-      padding: 48px 56px 64px 56px;
-      box-sizing: border-box;
-      min-height: 100vh;
-    }
-
-    .scene__image {
-      width: 100%;
-      height: auto;
-      border-radius: 8px;
-      display: block;
-      margin-bottom: 32px;
-    }
-
-    .scene__text {
-      font-size: 22px;
-      line-height: 1.7;
-      letter-spacing: 0.2px;
-    }
-
-    /* Final page: photo fills the page, single italic line centred at bottom. */
-    .final-page {
-      page-break-before: always;
+    /* Every page is a full A5 leaf with a warm parchment wash. */
+    .page {
       position: relative;
-      width: 100%;
-      height: 100vh;
-      margin: 0;
-      padding: 0;
+      width: 148mm;
+      height: 210mm;
+      box-sizing: border-box;
       overflow: hidden;
+      page-break-after: always;
+      background:
+        radial-gradient(120% 80% at 50% 0%, #FFFBF0 0%, var(--parchment) 55%, var(--parchment-deep) 100%);
+    }
+    .page:last-child { page-break-after: auto; }
+
+    /* A double rule frame drawn with one element + its ::before. */
+    .frame {
+      position: absolute;
+      top: 8mm; left: 8mm; right: 8mm; bottom: 8mm;
+      border: 1.4pt solid var(--gold);
+      border-radius: 2pt;
+    }
+    .frame::before {
+      content: "";
+      position: absolute;
+      top: 1.6mm; left: 1.6mm; right: 1.6mm; bottom: 1.6mm;
+      border: 0.6pt solid var(--rule);
+      border-radius: 1pt;
     }
 
-    .final-page__image {
+    /* Ornamental corner fleurons. */
+    .corner {
+      position: absolute;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18pt;
+      color: var(--gold-deep);
+      line-height: 1;
+    }
+    .corner.tl { top: 4.8mm;  left: 5.2mm; }
+    .corner.tr { top: 4.8mm;  right: 5.2mm; }
+    .corner.bl { bottom: 4.8mm; left: 5.2mm; }
+    .corner.br { bottom: 4.8mm; right: 5.2mm; }
+
+    /* A centred rule + fleuron divider. */
+    .divider {
+      text-align: center;
+      color: var(--gold-deep);
+      font-size: 13pt;
+      margin: 5mm 0 4mm;
+    }
+    .divider::before, .divider::after {
+      content: "";
+      display: inline-block;
+      width: 16mm;
+      border-top: 0.8pt solid var(--rule);
+      vertical-align: middle;
+      margin: 0 3mm;
+    }
+
+    /* ---------- Cover ---------- */
+    .cover-inner {
+      position: absolute;
+      top: 8mm; left: 8mm; right: 8mm; bottom: 8mm;
+      padding: 9mm 11mm;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+    }
+    .cover-kicker {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 12pt;
+      letter-spacing: 0.5pt;
+      color: var(--ink-soft);
+    }
+    .cover-title {
+      font-family: 'Cinzel Decorative', serif;
+      font-weight: 700;
+      font-size: 30pt;
+      line-height: 1.12;
+      color: var(--gold-deep);
+      margin: 2mm 4mm;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .cover-event {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 16pt;
+      color: var(--ink-soft);
+      margin-top: 1mm;
+    }
+    .cover-vignette {
+      width: 88mm;
+      height: 88mm;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.2pt solid var(--gold);
+      box-shadow: 0 2mm 6mm rgba(90,60,25,0.22);
+    }
+    .cover-foot {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 11pt;
+      letter-spacing: 2pt;
+      text-transform: uppercase;
+      color: var(--gold-deep);
+    }
+
+    /* ---------- Scene pages ---------- */
+    .scene-inner {
+      position: absolute;
+      top: 12mm; left: 12mm; right: 12mm; bottom: 12mm;
+      display: flex;
+      flex-direction: column;
+    }
+    .illus-mat {
+      padding: 2.2mm;
+      background: linear-gradient(160deg, #FFFDF6, #F0E2C2);
+      border: 0.8pt solid var(--gold);
+      border-radius: 3pt;
+      box-shadow: 0 1.5mm 4mm rgba(90,60,25,0.18);
+    }
+    .illus {
+      display: block;
+      width: 100%;
+      height: 84mm;
+      object-fit: cover;
+      border-radius: 1.5pt;
+    }
+    .story {
+      margin-top: 1mm;
+      font-size: 13.5pt;
+      line-height: 1.62;
+      text-align: justify;
+      hyphens: auto;
+      color: var(--ink);
+    }
+    .story p { margin: 0; }
+    /* Raised initial: a larger gold first letter inline (no float). WeasyPrint's
+       floated drop caps overlap the wrapped text, so we use a clean raised cap. */
+    .dropcap {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 600;
+      font-size: 27pt;
+      line-height: 1;
+      color: var(--gold-deep);
+      padding-right: 0.3pt;
+    }
+    .folio {
+      position: absolute;
+      bottom: 6mm; left: 0; right: 0;
+      text-align: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 11pt;
+      color: var(--gold-deep);
+    }
+    .folio::before { content: "❦  "; }
+
+    /* ---------- Final page ---------- */
+    .final { background: #000; }
+    .final-photo {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
-
-    .final-page__caption {
+    .final-veil {
       position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 56px;
+      left: 0; right: 0; bottom: 0;
+      height: 55%;
+      background: linear-gradient(to top, rgba(20,12,4,0.82) 0%, rgba(20,12,4,0.35) 45%, rgba(20,12,4,0) 100%);
+    }
+    .final-line {
+      position: absolute;
+      left: 12mm; right: 12mm; bottom: 18mm;
       text-align: center;
+      font-family: 'Cormorant Garamond', serif;
       font-style: italic;
-      font-size: 24px;
-      color: #FFFFFF;
-      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
-      padding: 0 48px;
+      font-size: 19pt;
+      line-height: 1.4;
+      color: #FCF3DF;
+      text-shadow: 0 1.5pt 6pt rgba(0,0,0,0.85);
+    }
+    .final-line::before {
+      content: "❦";
+      display: block;
+      font-style: normal;
+      font-size: 13pt;
+      color: var(--gold);
+      margin-bottom: 3mm;
     }
   </style>
 </head>
 <body>
+
+  <!-- Cover -->
+  <section class="page">
+    <div class="frame"></div>
+    <span class="corner tl">❦</span><span class="corner tr">❦</span>
+    <span class="corner bl">❦</span><span class="corner br">❦</span>
+    <div class="cover-inner">
+      <div>
+        <div class="cover-kicker">A Memory Lantern Storybook</div>
+        <div class="cover-title">{{ person_name }}</div>
+        {% if event %}<div class="cover-event">{{ event }}</div>{% endif %}
+      </div>
+      {% if cover_image_data_uri %}
+      <img class="cover-vignette" src="{{ cover_image_data_uri }}" alt="" />
+      {% endif %}
+      <div class="cover-foot">Once upon a time</div>
+    </div>
+  </section>
+
+  <!-- Scenes -->
   {% for scene in scenes %}
-  <section class="scene">
-    {% if scene.image_data_uri %}
-    <img class="scene__image" src="{{ scene.image_data_uri }}" alt="Scene {{ scene.scene_number }}" />
-    {% endif %}
-    <div class="scene__text">{{ scene.text }}</div>
+  <section class="page">
+    <div class="frame"></div>
+    <div class="scene-inner">
+      {% if scene.image_data_uri %}
+      <div class="illus-mat">
+        <img class="illus" src="{{ scene.image_data_uri }}" alt="Scene {{ scene.scene_number }}" />
+      </div>
+      {% endif %}
+      <div class="divider">❧</div>
+      <div class="story"><p><span class="dropcap">{{ scene.text[:1] }}</span>{{ scene.text[1:] }}</p></div>
+    </div>
+    <div class="folio">{{ scene.scene_number }}</div>
   </section>
   {% endfor %}
 
-  <section class="final-page">
-    {% if final_image_data_uri %}
-    <img class="final-page__image" src="{{ final_image_data_uri }}" alt="" />
-    {% else %}
-    <img class="final-page__image" src="FINAL_IMAGE_PLACEHOLDER" alt="" />
+  <!-- Final page (always rendered) -->
+  <section class="page final">
+    {% if final_photo_data_uri %}
+    <img class="final-photo" src="{{ final_photo_data_uri }}" alt="" />
     {% endif %}
-    <div class="final-page__caption">{{ final_line }}</div>
+    <div class="final-veil"></div>
+    <div class="final-line">{{ final_line }}</div>
   </section>
+
 </body>
 </html>

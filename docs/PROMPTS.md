@@ -51,7 +51,7 @@ for an elderly person based on their family memory and photos.
 Rules you MUST follow:
 - Write in second person ("You are standing...", "You remember...")
 - Write in present tense
-- Keep each scene to 2-4 warm, gentle sentences
+- Write each scene as a warm, flowing paragraph of about 5 to 7 gentle sentences — immersive and unhurried, rich with sensory detail, not just one or two lines
 - Ground every scene in specific details from the memory and photos
 - Create a gentle emotional arc: ordinary → meaningful → tender peak → quiet reflection → looking back with pride
 - Scene 5 must end with the person looking out at their life with quiet satisfaction
@@ -98,7 +98,7 @@ Return this exact JSON structure:
 [
     {{
         "scene_number": 1,
-        "text": "2-4 sentences of warm second-person present-tense prose",
+        "text": "a warm paragraph of ~5-7 sentences, second-person present-tense prose",
         "illustration_prompt": "brief visual description for the illustrator",
         "emotional_beat": "one or two words — e.g. 'anticipation' or 'quiet pride'"
     }},

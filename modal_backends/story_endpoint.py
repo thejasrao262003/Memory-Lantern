@@ -92,7 +92,7 @@ class StoryGenerator:
             {"role": "user", "content": user_prompt},
         ]
         text = self._chat(
-            messages, max_new_tokens=2048, do_sample=True, temperature=0.7, top_p=0.9
+            messages, max_new_tokens=3072, do_sample=True, temperature=0.7, top_p=0.9
         )
         scenes = self._parse_scenes(text)
         # Surface the raw output when nothing parsed, so we can tell prose/reasoning
