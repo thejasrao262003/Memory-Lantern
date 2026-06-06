@@ -29,6 +29,8 @@ try:  # Loading a .env locally is convenient but optional in production.
 except Exception:  # pragma: no cover - dotenv is optional
     pass
 
+from app import ui_logic
+from app.pipeline import orchestrator
 from app.tabs import feedback_tab, setup_tab, story_tab
 
 logger = logging.getLogger("memory_lantern")
@@ -76,6 +78,87 @@ def _load_css() -> str:
         return ""
 
 
+def _run_generation(photos, person_name, event, memory_text, state, progress):
+    """Shared logic for Generate and Regenerate.
+
+    Returns a 7-tuple aligned with: (session_state, setup.status, story.gallery,
+    story.audio, story.story_html, story.download_button, tabs).
+    """
+    from pathlib import Path
+
+    error = ui_logic.validate_inputs(photos, person_name, event, memory_text)
+    if error:
+        return (state, gr.update(value=f"⚠️ {error}", visible=True),
+                gr.update(), gr.update(), gr.update(), gr.update(), gr.update())
+
+    photo_paths = [Path(getattr(p, "name", p)) for p in (photos or [])]
+
+    def _cb(fraction: float, label: str) -> None:
+        try:
+            progress(fraction, desc=label)
+        except Exception:  # pragma: no cover - progress is best-effort
+            pass
+
+    import asyncio
+
+    result = asyncio.run(
+        orchestrator.generate_storybook(
+            person_name=person_name,
+            event=event,
+            memory_text=memory_text,
+            photos=photo_paths,
+            session_id=state.get("session_id", ""),
+            progress_callback=_cb,
+        )
+    )
+
+    # The orchestrator returns a warm error string on failure (never raises).
+    if isinstance(result, str):
+        return (state, gr.update(value=f"⚠️ {result}", visible=True),
+                gr.update(), gr.update(), gr.update(), gr.update(), gr.update())
+
+    audio = str(result.audio_path) if result.audio_path else None
+    pdf = str(result.pdf_path) if result.pdf_path else None
+    new_state = {
+        **state,
+        "person_name": person_name,
+        "event": event,
+        "memory_text": memory_text,
+        "uploaded_photos": [str(p) for p in photo_paths],
+        "scenes": result.scenes,
+        "audio_path": audio,
+        "pdf_path": pdf,
+        "generation_count": state.get("generation_count", 0) + 1,
+    }
+    story_html = ui_logic.render_story_html(result.scenes, person_name)
+    return (
+        new_state,
+        gr.update(value="", visible=False),
+        gr.update(value=result.images),
+        gr.update(value=audio),
+        gr.update(value=story_html),
+        gr.update(value=pdf),
+        gr.update(selected="tab_story"),
+    )
+
+
+def handle_generate(photos, person_name, event, memory_text, state, progress=gr.Progress()):
+    """Setup-tab Generate callback."""
+    return _run_generation(photos, person_name, event, memory_text, state, progress)
+
+
+def handle_regenerate(state, progress=gr.Progress()):
+    """Storybook-tab 'Generate a new version' callback — reuses the saved inputs."""
+    return _run_generation(
+        state.get("uploaded_photos"),
+        state.get("person_name"),
+        state.get("event"),
+        state.get("memory_text"),
+        state,
+        progress,
+    )
+
+
 def build_demo() -> gr.Blocks:
     """Construct the Gradio Blocks app."""
     missing = check_configuration()
@@ -118,10 +201,37 @@ def build_demo() -> gr.Blocks:
             with gr.Tab("How did it go?", id="tab_feedback"):
                 feedback_components = feedback_tab.build()
 
-        # TODO: wire callback — connect setup_components.generate_button to the
-        # orchestrator, stream progress, populate story_components, switch to
-        # tab_story, and refresh feedback_components from session_state.
-        _ = (setup_components, story_components, feedback_components, session_state, tabs)
+        # Wire the Generate / Regenerate flow. Outputs are aligned with the
+        # 7-tuple returned by _run_generation.
+        generation_outputs = [
+            session_state,
+            setup_components.status,
+            story_components.gallery,
+            story_components.audio,
+            story_components.story_html,
+            story_components.download_button,
+            tabs,
+        ]
+        setup_components.generate_button.click(
+            fn=handle_generate,
+            inputs=[
+                setup_components.photos,
+                setup_components.person_name,
+                setup_components.event,
+                setup_components.written_memory,
+                session_state,
+            ],
+            outputs=generation_outputs,
+        )
+        story_components.regenerate_button.click(
+            fn=handle_regenerate,
+            inputs=[session_state],
+            outputs=generation_outputs,
+        )
+
+        # TODO (Phase 4): wire feedback_components reactions -> session_store and
+        # refresh the 7-day history dataframe.
+        _ = feedback_components
 
     return demo
 

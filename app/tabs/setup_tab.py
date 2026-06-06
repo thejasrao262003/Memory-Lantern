@@ -20,6 +20,7 @@ class SetupComponents:
     event: gr.Textbox
     written_memory: gr.Textbox
     generate_button: gr.Button
+    status: gr.Markdown
 
 
 def build() -> SetupComponents:
@@ -54,6 +55,9 @@ def build() -> SetupComponents:
 
     generate_button = gr.Button("Generate storybook", variant="primary")
 
+    # Warm status / error line, shown during and after generation.
+    status = gr.Markdown(visible=False)
+
     # A progress bar is supplied to the generation callback via gr.Progress();
     # included here so the layout reserves space and intent is documented.
     gr.Progress()
@@ -66,11 +70,11 @@ def build() -> SetupComponents:
             "stays private to your account."
         )
 
-    # TODO: wire callback — generate_button.click(...) -> orchestrator.generate_storybook
     return SetupComponents(
         photos=photos,
         person_name=person_name,
         event=event,
         written_memory=written_memory,
         generate_button=generate_button,
+        status=status,
     )
