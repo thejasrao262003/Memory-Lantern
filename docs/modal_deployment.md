@@ -43,6 +43,21 @@ Each deploy prints the app name and a dashboard URL. The five apps are:
 | `memory-lantern-tts` | VoxCPM2 | A10G |
 | `memory-lantern-adaptation` | MiniCPM5-1B | T4 |
 
+## 3b. Pre-warm the weights volume (one-time)
+
+All endpoints share one Modal Volume (`memory-lantern-hf-cache`) mounted at
+`HF_HOME`, and each lazily downloads + commits its weights on first cold start.
+To move that one-time download cost off the first real user request, pre-populate
+the volume for every model on a cheap CPU container:
+
+```bash
+modal run modal_backends/download_models.py            # all models (~once)
+modal run modal_backends/download_models.py --only flux # just one (substring match)
+```
+
+After this completes, endpoint cold starts load from the volume instead of
+re-downloading. Re-run only when a model repo changes.
+
 ## 4. Getting the endpoint reference
 
 The Gradio app calls these classes via the Modal SDK using the app name and
