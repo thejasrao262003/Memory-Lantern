@@ -30,6 +30,7 @@ class FeedbackComponents:
     notes: gr.Textbox = None
     save_button: gr.Button = None
     history: gr.Dataframe = None
+    status: gr.Markdown = None
 
 
 def build() -> FeedbackComponents:
@@ -60,6 +61,7 @@ def build() -> FeedbackComponents:
         placeholder="e.g. She lit up at the photo of the old house.",
     )
     save_button = gr.Button("Save feedback", variant="primary")
+    status = gr.Markdown(visible=False)
 
     history = gr.Dataframe(
         headers=["Date", "Scene", "Reaction", "Notes"],
@@ -68,12 +70,11 @@ def build() -> FeedbackComponents:
         wrap=True,
     )
 
-    # TODO: wire callback — reaction buttons + save_button -> session_store.save_reaction;
-    # populate history from session_store.load_reaction_history(session_id, days=7).
     return FeedbackComponents(
         scene_texts=scene_texts,
         reaction_buttons=reaction_buttons,
         notes=notes,
         save_button=save_button,
         history=history,
+        status=status,
     )

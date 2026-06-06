@@ -8,6 +8,7 @@ callback``); this module is the navigable UI shell. Inference happens on Modal
 
 from __future__ import annotations
 
+import functools
 import logging
 import os
 import sys
@@ -37,7 +38,7 @@ logger = logging.getLogger("memory_lantern")
 logging.basicConfig(level=logging.INFO)
 
 # All environment variables the app needs in production (see docs/ERRORS.md).
-_REQUIRED_ENV = ("MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET", "HF_TOKEN", "HF_DATASET_REPO")
+_REQUIRED_ENV = ("MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET", "SUPABASE_URL", "SUPABASE_KEY")
 
 _CSS_PATH = _PROJECT_ROOT / "app" / "static" / "custom.css"
 
@@ -65,6 +66,7 @@ def default_session_state() -> dict:
         "audio_path": None,          # Path or None
         "pdf_path": None,            # Path or None
         "reaction_log": [],          # list of reaction dicts
+        "pending_reactions": {},     # {scene_number(str): reaction} awaiting save
         "adaptation_weights": {},    # dict[str, float]
         "generation_count": 0,       # times generated this session
     }
@@ -130,6 +132,15 @@ def _run_generation(photos, person_name, event, memory_text, state, progress):
         "pdf_path": pdf,
         "generation_count": state.get("generation_count", 0) + 1,
     }
+    # Best-effort: record story metadata (a fast insert). Asset uploads to
+    # Supabase Storage are kept out of this hot path to keep the result snappy.
+    try:
+        from app.storage import session_store
+
+        session_store.save_story_metadata(state.get("session_id", ""), result)
+    except Exception:  # noqa: BLE001 - persistence is best-effort (docs/ERRORS.md)
+        logger.warning("Could not save story metadata", exc_info=True)
+
     story_html = ui_logic.render_story_html(result.scenes, person_name)
     return (
         new_state,
@@ -157,6 +168,60 @@ def handle_regenerate(state, progress=gr.Progress()):
         state,
         progress,
     )
+
+
+def populate_feedback(state):
+    """When the feedback tab opens, show each scene's text above its buttons."""
+    scenes = state.get("scenes", []) or []
+    updates = []
+    for i in range(5):
+        text = (scenes[i].get("text") if i < len(scenes) else "") or ""
+        body = text.strip() or "_(generate a story first)_"
+        updates.append(gr.update(value=f"**Scene {i + 1}**\n\n{body}"))
+    return updates
+
+
+def set_reaction(scene_number, reaction, state):
+    """Record a pending reaction for a scene (persisted on Save feedback)."""
+    pending = dict(state.get("pending_reactions", {}))
+    pending[str(scene_number)] = reaction
+    new_state = {**state, "pending_reactions": pending}
+    return new_state, gr.update(value=f"Noted — scene {scene_number}: {reaction}.", visible=True)
+
+
+def save_feedback(notes, state):
+    """Persist pending reactions, then refresh the 7-day history table."""
+    from app.storage import session_store
+
+    pending = state.get("pending_reactions", {}) or {}
+    session_id = state.get("session_id", "")
+    saved = 0
+    for scene_number, reaction in pending.items():
+        try:
+            session_store.save_reaction(
+                session_id,
+                int(scene_number),
+                reaction,
+                notes if str(scene_number) == "1" else "",
+            )
+            saved += 1
+        except Exception:  # noqa: BLE001 - a failed write is logged, not shown
+            logger.warning("Could not save reaction for scene %s", scene_number, exc_info=True)
+
+    history = session_store.load_reaction_history(session_id, days=7)
+    rows = [
+        [r.get("date"), r.get("scene_number"), r.get("reaction"), r.get("notes", "")]
+        for r in history
+    ]
+    new_state = {**state, "pending_reactions": {}, "reaction_log": history}
+
+    if saved:
+        msg = "Thank you — saved. Tomorrow's story will lean into what she loves."
+    elif pending:
+        msg = "We couldn't save just now. Please try again in a moment."
+    else:
+        msg = "Tap how each scene felt, then press Save feedback."
+    return new_state, gr.update(value=msg, visible=True), gr.update(value=rows)
 
 
 def build_demo() -> gr.Blocks:
@@ -198,7 +263,7 @@ def build_demo() -> gr.Blocks:
                 setup_components = setup_tab.build()
             with gr.Tab("Your storybook", id="tab_story"):
                 story_components = story_tab.build()
-            with gr.Tab("How did it go?", id="tab_feedback"):
+            with gr.Tab("How did it go?", id="tab_feedback") as feedback_tab_handle:
                 feedback_components = feedback_tab.build()
 
         # Wire the Generate / Regenerate flow. Outputs are aligned with the
@@ -229,9 +294,26 @@ def build_demo() -> gr.Blocks:
             outputs=generation_outputs,
         )
 
-        # TODO (Phase 4): wire feedback_components reactions -> session_store and
-        # refresh the 7-day history dataframe.
-        _ = feedback_components
+        # Feedback tab: show each scene's text when the tab is opened.
+        feedback_tab_handle.select(
+            fn=populate_feedback,
+            inputs=[session_state],
+            outputs=feedback_components.scene_texts,
+        )
+        # Reaction buttons → record a pending reaction for that scene.
+        for scene_idx, row in enumerate(feedback_components.reaction_buttons, start=1):
+            for reaction_key, button in row:
+                button.click(
+                    fn=functools.partial(set_reaction, scene_idx, reaction_key),
+                    inputs=[session_state],
+                    outputs=[session_state, feedback_components.status],
+                )
+        # Save feedback → persist reactions + refresh the 7-day history.
+        feedback_components.save_button.click(
+            fn=save_feedback,
+            inputs=[feedback_components.notes, session_state],
+            outputs=[session_state, feedback_components.status, feedback_components.history],
+        )
 
     return demo
 

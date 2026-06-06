@@ -1,5 +1,17 @@
 # STORAGE.md — Storage and Session Management
 
+> **IMPLEMENTATION UPDATE (supersedes the HF Datasets design below).**
+> Storage now uses **Supabase**: Postgres for the `reactions` and `stories`
+> tables, and Supabase **Storage** (bucket `storybooks`) for generated assets.
+> The app uses the `supabase-py` client with the **service-role** key.
+> - Schema + bucket: [`supabase_schema.sql`](supabase_schema.sql)
+> - Env: `SUPABASE_URL`, `SUPABASE_KEY` (service-role) — replaces `HF_TOKEN` /
+>   `HF_DATASET_REPO` for storage.
+> - Code: `app/storage/supabase_client.py`, `session_store.py`, `asset_store.py`.
+> The same module API (`save_reaction`, `load_reaction_history`,
+> `save_story_metadata`) is preserved. The JSONL/HF design below is kept for
+> historical context (ADR-006) and is no longer the implementation.
+
 ## Overview
 
 Memory Lantern uses two storage mechanisms:
