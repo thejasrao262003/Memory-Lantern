@@ -67,6 +67,7 @@ class StoryResult:
     images: "list[Image.Image]" = field(default_factory=list)
     audio_path: Optional[Path] = None
     pdf_path: Optional[Path] = None
+    video_path: Optional[Path] = None
     session_id: str = ""
     person_name: str = ""
     adaptation_weights: dict[str, float] = field(default_factory=dict)
@@ -111,8 +112,9 @@ async def generate_storybook(
         * 15%  — analyse photos (vision)
         * 35%  — generate the five-scene story (story)
         * 75%  — render illustrations in parallel (illustration)
-        * 90%  — narrate the story (TTS)
-        * 100% — assemble the PDF
+        * 88%  — narrate the story (TTS)
+        * 95%  — assemble the PDF
+        * 100% — composite the narrated MP4 video
 
     Args:
         person_name: Name of the person the memory is about.
@@ -154,10 +156,10 @@ async def generate_storybook(
         _progress(0.75, "Painting the illustrations…")
         images = illustrator.generate_illustrations(scenes, analysis.style_period)
 
-        _progress(0.90, "Recording the narration…")
+        _progress(0.88, "Recording the narration…")
         audio_path = narrator.narrate_story(scenes, person_name=person_name)
 
-        _progress(1.00, "Your storybook is ready.")
+        _progress(0.95, "Binding the storybook…")
         # The final page shows the first uploaded photo; load it on the CPU here.
         first_photo = None
         if photos:
@@ -175,6 +177,23 @@ async def generate_storybook(
             first_photo=first_photo,
             output_path=Path("output") / f"{person_name}_storybook.pdf",
         )
+
+        _progress(1.00, "Making a shareable video…")
+        # The narrated video is a keepsake nicety — never fail the story over it.
+        video_path = None
+        try:
+            from app.video import builder as video_builder
+
+            if audio_path and images:
+                video_path = video_builder.build_video(
+                    scenes=scenes,
+                    images=images,
+                    audio_path=audio_path,
+                    output_path=Path("output") / f"{person_name}_storybook.mp4",
+                )
+        except Exception:  # noqa: BLE001 - video is best-effort
+            traceback.print_exc()
+            video_path = None
     except ValidationError as exc:
         return str(exc)
     except PipelineError as exc:
@@ -189,6 +208,7 @@ async def generate_storybook(
         images=images,
         audio_path=audio_path,
         pdf_path=pdf_path,
+        video_path=video_path,
         session_id=session_id,
         person_name=person_name,
         adaptation_weights=adaptation_weights or {},

@@ -53,3 +53,10 @@ def save_pdf(session_id: str, pdf_path: Path, person_name: str = "") -> str:
     data = Path(pdf_path).read_bytes()
     safe = (person_name or "storybook").replace("/", "_").strip() or "storybook"
     return _upload(f"{session_id}/{safe}_storybook.pdf", data, "application/pdf")
+
+
+def save_video(session_id: str, video_path: Path, person_name: str = "") -> str:
+    """Upload the narrated MP4; return its public URL (the shareable keepsake)."""
+    data = Path(video_path).read_bytes()
+    safe = (person_name or "storybook").replace("/", "_").strip() or "storybook"
+    return _upload(f"{session_id}/{safe}_storybook.mp4", data, "video/mp4")

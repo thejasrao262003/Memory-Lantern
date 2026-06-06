@@ -91,7 +91,8 @@ def _run_generation(photos, person_name, event, memory_text, state, progress):
     error = ui_logic.validate_inputs(photos, person_name, event, memory_text)
     if error:
         return (state, gr.update(value=f"⚠️ {error}", visible=True),
-                gr.update(), gr.update(), gr.update(), gr.update(), gr.update())
+                gr.update(), gr.update(), gr.update(), gr.update(),
+                gr.update(), gr.update(), gr.update())
 
     photo_paths = [Path(getattr(p, "name", p)) for p in (photos or [])]
 
@@ -117,7 +118,8 @@ def _run_generation(photos, person_name, event, memory_text, state, progress):
     # The orchestrator returns a warm error string on failure (never raises).
     if isinstance(result, str):
         return (state, gr.update(value=f"⚠️ {result}", visible=True),
-                gr.update(), gr.update(), gr.update(), gr.update(), gr.update())
+                gr.update(), gr.update(), gr.update(), gr.update(),
+                gr.update(), gr.update(), gr.update())
 
     audio = str(result.audio_path) if result.audio_path else None
     pdf = str(result.pdf_path) if result.pdf_path else None
@@ -141,6 +143,20 @@ def _run_generation(photos, person_name, event, memory_text, state, progress):
     except Exception:  # noqa: BLE001 - persistence is best-effort (docs/ERRORS.md)
         logger.warning("Could not save story metadata", exc_info=True)
 
+    # Best-effort: upload the narrated video to Supabase for a shareable link.
+    video = str(result.video_path) if result.video_path else None
+    share_md = ""
+    try:
+        from app.storage import asset_store, supabase_client
+
+        if supabase_client.is_configured() and result.video_path:
+            url = asset_store.save_video(
+                state.get("session_id", ""), Path(result.video_path), person_name
+            )
+            share_md = f"🔗 **Shareable video link:** [{url}]({url})"
+    except Exception:  # noqa: BLE001 - sharing is best-effort
+        logger.warning("Could not upload video to Supabase", exc_info=True)
+
     story_html = ui_logic.render_story_html(result.scenes, person_name)
     return (
         new_state,
@@ -149,6 +165,8 @@ def _run_generation(photos, person_name, event, memory_text, state, progress):
         gr.update(value=audio),
         gr.update(value=story_html),
         gr.update(value=pdf),
+        gr.update(value=video),
+        gr.update(value=share_md, visible=bool(share_md)),
         gr.update(selected="tab_story"),
     )
 
@@ -275,6 +293,8 @@ def build_demo() -> gr.Blocks:
             story_components.audio,
             story_components.story_html,
             story_components.download_button,
+            story_components.video,
+            story_components.share_link,
             tabs,
         ]
         setup_components.generate_button.click(

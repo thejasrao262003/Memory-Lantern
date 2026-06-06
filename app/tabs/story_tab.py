@@ -1,6 +1,7 @@
 """Tab 2 — "Your Storybook".
 
-Displays the generated illustrations, narration, story text, and a PDF download.
+Displays the generated illustrations, narration, story text, a narrated video,
+and a PDF download.
 """
 
 from __future__ import annotations
@@ -17,6 +18,8 @@ class StoryComponents:
     gallery: gr.Gallery
     audio: gr.Audio
     story_html: gr.HTML
+    video: gr.Video
+    share_link: gr.Markdown
     download_button: gr.DownloadButton
     regenerate_button: gr.Button
 
@@ -43,16 +46,29 @@ def build() -> StoryComponents:
         label="Story",
     )
 
+    # The shareable keepsake: illustrations + narration in one "press play" file.
+    # (gr.Video shows a download control by default in this Gradio version.)
+    video = gr.Video(
+        label="Your storybook, narrated",
+        autoplay=False,
+    )
+    share_link = gr.Markdown(visible=False)
+
     with gr.Row():
         download_button = gr.DownloadButton("Download storybook PDF")
         regenerate_button = gr.Button("Generate a new version", variant="secondary")
 
-    # TODO: wire callback — populated by orchestrator output; regenerate_button
-    # re-runs generation with the same inputs.
+    gr.Markdown(
+        "_After watching, head to the 'How did it go?' tab to help us make "
+        "tomorrow's story even better._"
+    )
+
     return StoryComponents(
         gallery=gallery,
         audio=audio,
         story_html=story_html,
+        video=video,
+        share_link=share_link,
         download_button=download_button,
         regenerate_button=regenerate_button,
     )
