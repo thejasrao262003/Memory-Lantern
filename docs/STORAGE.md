@@ -2,7 +2,7 @@
 
 > **IMPLEMENTATION UPDATE (supersedes the HF Datasets design below).**
 > Storage now uses **Supabase**: Postgres for the `reactions` and `stories`
-> tables, and Supabase **Storage** (bucket `storybooks`) for generated assets.
+> tables, and Supabase **Storage** (bucket `Memory-Lantern`) for generated assets.
 > The app uses the `supabase-py` client with the **service-role** key.
 > - Schema + bucket: [`supabase_schema.sql`](supabase_schema.sql)
 > - Env: `SUPABASE_URL`, `SUPABASE_KEY` (service-role) — replaces `HF_TOKEN` /

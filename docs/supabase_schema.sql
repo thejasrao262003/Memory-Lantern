@@ -42,10 +42,11 @@ alter table public.reactions enable row level security;
 alter table public.stories   enable row level security;
 
 -- ---------------------------------------------------------------------------
--- Object storage: create a bucket named "storybooks" for the generated assets.
--- Easiest via Dashboard → Storage → New bucket → name "storybooks".
--- (If you want shareable links without signing, mark it Public.)
+-- Object storage: create a bucket named "Memory-Lantern" for the generated assets.
+-- Easiest via Dashboard → Storage → New bucket → name "Memory-Lantern".
+-- (If you want shareable links without signing, mark it Public.) Names are
+-- case-sensitive and must match app/storage/supabase_client.py (ASSET_BUCKET).
 -- Or uncomment to create it from SQL:
 -- insert into storage.buckets (id, name, public)
--- values ('storybooks', 'storybooks', true)
+-- values ('Memory-Lantern', 'Memory-Lantern', true)
 -- on conflict (id) do nothing;

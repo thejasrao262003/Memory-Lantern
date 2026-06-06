@@ -22,7 +22,8 @@ URL_ENV = "SUPABASE_URL"
 KEY_ENV = "SUPABASE_KEY"
 
 # Storage bucket for generated assets (create it as described in docs/STORAGE.md).
-ASSET_BUCKET = "storybooks"
+# Note: Supabase bucket names are case-sensitive — must match exactly.
+ASSET_BUCKET = "Memory-Lantern"
 
 
 def is_configured() -> bool:
